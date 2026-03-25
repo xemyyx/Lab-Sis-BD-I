@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de las practcas: Laboratorio de Bases de Datos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        p { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Bitácora de Proyecto: Migración y Optimización de Bases de Datos</h1>
+    <p><strong>Autor:</strong> Carlos Castañeda Ramirez/p>
+
+    <div class="section">
+        <h2>1. Biblioteca: Estructura Original</h2>
+        <p>Así estaba mi base original sacada del archivo SQLite. Tenía mis tablas base, pero las tablas puente tenían nombres confusos y los tipos de datos estaban muy cortos.</p>
+        <pre><code>
+CREATE TABLE AUTOR (ID INT PRIMARY KEY, NOMBRE VARCHAR(30), NACIONALIDAD VARCHAR(20), BIBLIOGRAFIA VARCHAR(200));
+CREATE TABLE EDITORIAL (ID INT PRIMARY KEY, NOMBRE VARCHAR(30), DIRECCION VARCHAR(20), FECHA_FUNDACION DATE);
+CREATE TABLE LIBRO (ID INT PRIMARY KEY, NOMBRE VARCHAR(30), GENERO VARCHAR(20), FECHA_PUBLICACION DATE);
+CREATE TABLE USUARIO (ID INT PRIMARY KEY, NOMBRE VARCHAR(30), DIRECCION VARCHAR(20), TELEFONO VARCHAR(13));
+CREATE TABLE LIBRO_AUTOR (LIBRO_ID INT, AUTOR_ID INT, FOREIGN KEY (LIBRO_ID) REFERENCES LIBRO(ID), FOREIGN KEY (AUTOR_ID) REFERENCES AUTOR(ID));
+CREATE TABLE LIBRO_EDITORIAL (LIBRO_ID INT, EDITORIAL_ID INT, FOREIGN KEY (LIBRO_ID) REFERENCES LIBRO(ID), FOREIGN KEY (EDITORIAL_ID) REFERENCES EDITORIAL(ID));
+CREATE TABLE PRESTAMOS (LIBRO_ID INT, USUARIO_ID INT, FOREIGN KEY (LIBRO_ID) REFERENCES LIBRO(ID), FOREIGN KEY (USUARIO_ID) REFERENCES USUARIO(ID));
+        </code></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Biblioteca: Versión Migrada (Con Triggers)</h2>
+        <p>Aquí arreglé el desmadre. Le puse llaves primarias a todo, amplié los VARCHAR, le metí la columna STOCK a LIBRO y armé un trigger para descontar el stock solito.</p>
+        <pre><code>
+-- (Aquí va el código SQL de la creación de tablas mejoradas y el trigger que armé arriba)
+CREATE TRIGGER trg_descontar_libro
+AFTER INSERT ON PRESTAMOS
+FOR EACH ROW
+BEGIN
+    UPDATE LIBRO SET STOCK = STOCK - 1 WHERE ID = NEW.LIBRO_ID;
+END;
+        </code></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Abarrotes: Estructura Original</h2>
+        <p>Así estaba mi diseño al principio. La tabla CORTE traía los productos metidos como texto directo y faltaba normalizar macizo.</p>
+        <pre><code>
+CREATE TABLE PROVEEDOR (ID_PROVEEDOR INT PRIMARY KEY, NOMBRE_EMPRESA VARCHAR(100), TELEFONO VARCHAR(20));
+CREATE TABLE DUEÑO (ID_DUEÑO INT PRIMARY KEY, NOMBRE VARCHAR(100), TELEFONO VARCHAR(20), PROVEEDOR VARCHAR(100));
+CREATE TABLE VENTA (ID_VENTA INT PRIMARY KEY, ID_DUEÑO INT, FECHA DATETIME, TOTAL DECIMAL(10,2));
+CREATE TABLE CORTE (ID_CORTE INT PRIMARY KEY, ID_VENTA INT, PRODUCTO VARCHAR(100), CANTIDAD INT, PRECIO DECIMAL(10,2), DECIMALW DECIMAL(10,2));
+        </code></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Abarrotes: Versión Migrada</h2>
+        <p>Separé los productos en su propia tabla y le clavé dos triggers: uno para el inventario automático y otro para el total de la venta.</p>
+        <pre><code>
+-- (Aquí va el código SQL de las tablas nuevas de abarrotes y mis dos triggers perrones)
+CREATE TRIGGER trg_actualizar_total_venta
+AFTER INSERT ON DETALLE_VENTA
+FOR EACH ROW
+BEGIN
+    UPDATE VENTA SET TOTAL = TOTAL + (NEW.CANTIDAD * NEW.PRECIO_UNITARIO) WHERE ID_VENTA = NEW.ID_VENTA;
+END;
+        </code></pre>
+    </div>
+
+    <div class="section">
+        <h2>5. Pruebas Finales: Inserciones y Consultas (Biblioteca)</h2>
+        <p>Mi script completito con datos de prueba ("La Rata con Thinner", etc.) para detonar las automatizaciones y unos JOIN chidos.</p>
+        <pre><code>
+-- (Aquí pego mis inserts y los SELECT con JOIN para el reporte final)
+SELECT P.ID AS Folio_Prestamo, U.NOMBRE AS Lector, L.NOMBRE AS Libro_Prestado, L.STOCK AS Stock_Restante 
+FROM PRESTAMOS P JOIN USUARIO U ON P.USUARIO_ID = U.ID JOIN LIBRO L ON P.LIBRO_ID = L.ID;
+        </code></pre>
+    </div>
+
+</body>
+</html>
